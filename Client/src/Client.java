@@ -14,16 +14,21 @@ public class Client {
 			Refuse = 2, //Erreur par défaut
 			TestConnexion = 3, //Teste si le client est toujours actif
 			Online = 4,	//Valeur retournée par le client pour signaler qu'il est toujours actif
+			UsrListe = 7, //Liste des correspondances ID <-> username envoyé par le serveur au client à la connexion
+			NewUse = 15, //Code envoyé par le serveur pour notifier un client de la connexion d'un nouvel utilisateur
 			NewChat = 11, //Demande de création de chat, suivi du nom des dest.
+			DelUse = 16, //Code envoyé par le serveur pour notifier un client de la déconnexion d'un utilisateur
 			TestAuth = 32, //Code envoyé par le client pour s'authentifier, suivi du pseudo sans espace
 			NewMsg = 42, //Envoi d'un msg, suivi de l'ID du chat et du message
+			MsgOK = 43, //Code envoyé au client par le serveur pour indiquer que le message a été transmi.
+			MsgErr = 44, //Code envoyé au client par le serveur pour indiquer que le message n'a pas été transmi
 			NeedAuth = 100, //Demande d'authentification du serveur vers le client
 			PseudoInvalide = 101, //Erreur d'authentification retournée par le serveur
 			AuthOK = 102, //Validation de l'authentification
 			IDChatInvalide = 110, //Impossible d'écrire dans ce chat
 			RetourIDChat = 111, //Retourne l'ID du chat voulu, suivi
-			ContactInvalide = 112, //Erreur : le destinataire voulu n'existe pas, suivi du pseudo invalide
-			RecepMess = 99 
+			ContactInvalide = 112 //Erreur : le destinataire voulu n'existe pas, suivi du pseudo invalide
+			 
 			;
 	
 	private Scanner m_sc;
@@ -139,6 +144,8 @@ public class Client {
     		m_socket.setSoTimeout(0);
     		packet = new DatagramPacket(new byte[512], 512);
     		m_socket.receive(packet);
+    		m_ia = packet.getAddress();
+    		m_port= packet.getPort();
     		SendACK();
     		return packet;
     	}
@@ -150,11 +157,11 @@ public class Client {
     }
 
     //Traitement d'un datagramPacket
-    public void Traitement(/*DatagramPacket dp*/)
+    public void Traitement(DatagramPacket dp)
     {
-    	byte flag = 100;
+    	/*byte flag = 100;
     	DatagramPacket dp = new DatagramPacket(new byte[512], 512);
-    	dp.setData(ByteBuffer.allocate(512).put(flag).put(" on est mal la".getBytes()).array());
+    	dp.setData(ByteBuffer.allocate(512).put((byte)AuthOK).put(" on est mal la".getBytes()).array());*/
     	InetAddress ia = dp.getAddress();
     	byte[] data = dp.getData();
     	int port = dp.getPort();
@@ -190,7 +197,7 @@ public class Client {
     			break;
     			
     		case IDChatInvalide:
-    			
+    			System.out.println("serveur complet");
     			break;
     			
     		case ContactInvalide:
@@ -204,7 +211,7 @@ public class Client {
     		case ACK:
     			break;
     			
-    		case RecepMess:
+    		case NewMsg:
     			EnregistrerMessage(data);
     			break;
     		
@@ -216,6 +223,7 @@ public class Client {
     public void EnregistrerMessage(byte[] data)
     {
     	byte idConvAct = data[1];
+    	byte idEmetteur = data[2];
     	int i = getConv(idConvAct);
     	if( i == -1)
     	{
@@ -224,7 +232,7 @@ public class Client {
     	}
     	
     	Conversation conv = m_conv[i];
-    	conv.addMess(data,0);
+    	conv.addMess(data,idEmetteur);
     	
     	
     }
@@ -270,8 +278,8 @@ public class Client {
     	
     	send(bbuff.array());
 
-       	//DatagramPacket dp = Reception(port);
-       	Traitement(/*dp*/);
+       	DatagramPacket dp = Reception();
+       	Traitement(dp);
     	
     }
     
@@ -301,7 +309,7 @@ public class Client {
     	send(bbuff.array());
 
     	DatagramPacket dp = Reception();
-    	Traitement(/*dp*/);
+    	Traitement(dp);
     }
     
     //rentrer un message
@@ -331,7 +339,7 @@ public class Client {
     	send(bbuff.array());
 
     	DatagramPacket dp = Reception();
-    	Traitement(/*dp*/);
+    	Traitement(dp);
     }
     
     //Affichage des données
