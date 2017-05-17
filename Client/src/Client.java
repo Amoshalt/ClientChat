@@ -296,6 +296,7 @@ public class Client extends Thread
 	    			break;
 
 	    		case UsrListe:
+	    			System.out.println("Les utilisateurs sont reçus");
 	    			RentreUtilisateurs(data);
 	    			break;
 
@@ -527,7 +528,25 @@ public class Client extends Thread
     	send(bbuff.array());
 
     }
-
+    
+    //Choisir entre chat global et discussion
+    public int choix()
+    {
+    	
+    	String tempLine= "";
+    	while(true)
+    	{
+    		System.out.println("Donnez le numero correspondant à votre attente:\n1:Chat avec tout les utilisateurs\2:CHat avec certains utilisateurs");
+    		tempLine = m_sc.nextLine();
+    		if(tempLine.equals("1"))
+    			return 1;
+    		else
+    			if(tempLine.equals("2"))
+    			return 2;
+    		
+    	}
+    	
+    }
     //Getter Setter
 
     //recupère l'index de la conversation avec l'id byte
