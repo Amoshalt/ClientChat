@@ -3,13 +3,15 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Scanner;
 
-public class Client {
+public class Client extends Thread
+{
 	
 	public final static int Exit = 0, //Code envoyé par le client à la fermeture
 
@@ -63,7 +65,7 @@ public class Client {
 	
 	//Constructor
 	
-	public Client (String serveur)
+	public Client (String serveur) 
 	{
 		m_continuer = true;
 		m_close = false;
@@ -75,7 +77,7 @@ public class Client {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		m_port = 1235;
+		m_port = 1234;
 		m_nbConv = 0;
 		try
 		{
@@ -87,6 +89,7 @@ public class Client {
 		}
 		
 		m_users = new ArrayList<User>(128);
+		
 	}
 	
 	public void run()
@@ -96,12 +99,16 @@ public class Client {
 		
 		m_socket.close();
 		m_close = true;
+		m_sc.close();
+		System.out.println("Client ferme.");
 		
 	}
 	
 	protected void Action()
 	{
-		System.out.println("Serv Action");
+		EnvoyerMessage();
+		
+		
 		DatagramPacket dp = Reception();
 		if(dp != null)
 			Traitement(dp);
@@ -110,8 +117,7 @@ public class Client {
 	//Destructor
 	public void DestroyClient()
 	{
-		m_sc.close();
-		System.out.println("Client ferme.");
+		m_continuer = false;
 		
 	}
 	
@@ -119,17 +125,19 @@ public class Client {
     public boolean send(byte[] tab)
     {
     	DatagramPacket dp = new DatagramPacket(tab, tab.length, m_ia, m_port);
-    	System.out.println("taille: " + dp.getLength());
-    	System.out.println("port : "+ dp.getPort());
-    	System.out.println("adresse ; " + dp.getAddress());
     	try
     	{
-    		int i;
-    		//On essaye d'envoyer le DTG jusqu'à 3 fois si on ne reçoit aucun ACK
-    		for(i = 0; i < 3; i = ACK() ? 5 : (i + 1))
-    			m_socket.send(dp);
-    		if(i == 3)
-    			return false;
+        	//On s'assure de ne pas échanger une suite interminable de ACK avec le client
+    		if(tab[0] != ACK)
+    		{
+    			int i;
+	    		//On essaye d'envoyer le DTG jusqu'à 3 fois si on ne reçoit aucun ACK
+	    		for(i = 0; i < 3; i = (ACK() ? 5 : (i + 1)))
+	    			m_socket.send(dp);
+	    		if(i == 3)
+	    			return false;
+    		}
+    		else m_socket.send(dp);
 		}
     	catch (IOException e1)
     	{
@@ -145,11 +153,10 @@ public class Client {
     	DatagramPacket packet;
     	try
     	{
+    		m_socket.setSoTimeout(500);
     		//On reçoit jusqu'à recevoir un ACK pour le DTG voulu ou avoir un Timeout
     		while(true)
     		{
-    			//On n'attend que 3 secondes
-        		m_socket.setSoTimeout(3000);
 	    		packet = new DatagramPacket(new byte[512], 512);
 	    		m_socket.receive(packet);
 	    		//Si on a un ACK pour le DTG, on retourne "true"
@@ -182,21 +189,28 @@ public class Client {
     //Receptionne un DTG et envoie un ACK
     public DatagramPacket Reception()
     {
+    	//m_timeout = false;
     	DatagramPacket packet;
     	try
     	{
-    		//On attend jusqu'à recevoir une réponse
-    		m_socket.setSoTimeout(0);
-    		packet = new DatagramPacket(new byte[512], 512);
-    		m_socket.receive(packet);
-    		m_ia = packet.getAddress();
-    		m_port= packet.getPort();
+    		//On attend jusqu'à 3 secondes pour recevoir une réponse, si on ne reçoit qu'un ACK, on recommence
+    		do
+    		{
+	    		m_socket.setSoTimeout(3000);
+	    		packet = new DatagramPacket(new byte[512], 512);
+	    		m_socket.receive(packet);
+	    		if(packet.getData()[0] == ACK) System.out.println("ACK recu");
+    		}while(packet.getData()[0] == ACK);
+    		//Si le packet n'est pas un ACK, on en retourne un au client
     		SendACK();
     		return packet;
     	}
     	catch(IOException e)
     	{
-    		e.printStackTrace();
+    		//Timeout
+    		if(!(e instanceof SocketTimeoutException))
+    			e.printStackTrace();
+    		else System.out.println("Timeout :\n> Adresse : " + m_ia.getHostAddress() + "\n> Port : " + m_port);
     	}
     	return null;
     }
@@ -258,7 +272,8 @@ public class Client {
     			break;
     			
     		case NewMsg:
-    			EnregistrerMessage(data);
+    			//EnregistrerMessage(data);
+    			AfficherMessage(data);
     			break;
     			
     		case UsrListe:
@@ -274,31 +289,78 @@ public class Client {
     			break;
     			
     		case NewChat:
+    			NouveauChat();
     			break;
     			
     		case MsgOK:
     			break;
     			
     		case MsgErr:
+    			System.out.println("Votre messsage n'a pas été envoyé");
     			break;
     		
     	}
-    	SendACK();
     	affichage(dp);
     }
     
-    private void SuppUtilisateur(byte idUsr) {
+    private void NouveauChat() {
+    	ByteBuffer bbuff = ByteBuffer.allocate(512);
+    	System.out.println("Rentrez les id des utilisateurs avec qui vous voulez discuter dans la liste ci-dessous");
+    	AfficherListeUsr();
+    	String id;
+    	int j ;
+    	boolean entiers = true;
+    	do
+		{
+    		j= 0;
+    		System.out.println("Id utilisateur:");
+    		id = m_sc.nextLine();
+    		
+    		while( j < id.length() && entiers)
+    		{
+    			if (id.charAt(j) <'0' || id.charAt(j) > '9')
+    				{
+    					entiers = false;
+    				}
+    			
+    		}
+    		
+    		
+		}while (true);
+		
+	}
+    
+    private void AfficherListeUsr()
+    {
+    	for(int i = 0; i < m_users.size(); i++)
+    		{
+    		System.out.println(m_users.get(i).getUsername() + " : " + m_users.get(i).getId());
+    		}
+    }
+
+	private void SuppUtilisateur(byte idUsr) {
 		
     	
-    	boolean trouve = false;
+		User tempUsr = TrouveUser(idUsr);
+		
+		if (tempUsr.getId() != ((byte) 0))
+		{
+			m_users.remove(m_users.indexOf(tempUsr));
+		}
+    	
+    	
+		
+	}
+	
+	public User TrouveUser(byte idUsr)
+	{
     	int i = 0;
-    	while ( i < m_users.size() || !trouve)
+		while ( i < m_users.size())
     	{
     		if (m_users.get(i).getId() == idUsr)
     		{
-    			User tempUsr = new User(m_users.get(i).getId(),m_users.get(i).getUsername());
-    			m_users.remove(m_users.indexOf(tempUsr));
-    			trouve = true;
+    			return new User(m_users.get(i).getId(),m_users.get(i).getUsername());
+    		
     		}
     		else
     		{
@@ -306,8 +368,7 @@ public class Client {
     		}
     		i++;
     	}
-    	
-		
+		return new User();
 	}
 
 
@@ -372,14 +433,19 @@ public class Client {
     public void DemandeAuth()
     {
     	String pseudo = RentrerPseudo();
+    	System.out.println("Le pseudo est bien rentré");
     	
-    	byte flag = 32;
-    	byte end = 0;
     	ByteBuffer bbuff = ByteBuffer.allocate(512);
-    	bbuff.put(flag).put(pseudo.getBytes()).put(end);
+    	bbuff.put((byte)TestAuth).put(pseudo.getBytes());
     	
-    	send(bbuff.array());
-
+    	if(send(bbuff.array()) == true) 
+    	{
+    		System.out.println("pseudo envoyé");
+    	}
+    	else
+    	{
+    		System.out.println("pseudo non envoyé");
+    	}
        	DatagramPacket dp = Reception();
        	Traitement(dp);
     	
@@ -420,17 +486,22 @@ public class Client {
     	
     }
     
+    //affichage du message et du propriétaire
+    
+    public void AfficherMessage(byte[] data)
+    {
+    	String name = TrouveUser(data[2]).getUsername();
+    	System.out.println(name + " : " + Arrays.copyOfRange(data, 3, data.length).toString());
+	   
+    }
+    
     //Envoyer un message
     public void EnvoyerMessage()
     {
     	byte section = 0;
-    	byte[] flag = new byte[2];
-    	flag[0] = 11;
-    	flag[1]= 1;
-    	
-    	
     	ByteBuffer bbuff = ByteBuffer.allocate(512);
-		bbuff.put(flag);
+		bbuff.put((byte)NewMsg);
+		bbuff.put((byte) 0);
     	String tempMessage ="0";
     	System.out.println("Saisissez votre message \n Appuyer deux fois sur entrer si vous avez fini. \n");
     	tempMessage = m_sc.nextLine();
@@ -440,8 +511,6 @@ public class Client {
     	
     	send(bbuff.array());
 
-    	DatagramPacket dp = Reception();
-    	Traitement(dp);
     }
     
     //Affichage des données

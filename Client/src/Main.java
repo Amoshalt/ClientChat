@@ -13,10 +13,12 @@ public class Main
 	public static void main(String[] args) 
     {
 		
-    	String serveur = "192.168.43.40";
+    	String serveur = "127.0.0.1";
     	Client client = new Client(serveur);
-    	client.DemandeAuth();
-		client.DemandeConv();
+    	client.start();
+    	/*client.DemandeAuth();
+    	System.out.println("Demande terminée");
+		client.DemandeConv();*/
 	    
     	
     	
