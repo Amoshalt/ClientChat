@@ -493,7 +493,7 @@ public class Client extends Thread
     	byte section = 0;
     	ByteBuffer bbuff = ByteBuffer.allocate(512);
 		bbuff.put((byte)NewMsg);
-		bbuff.put((byte) 0);
+		bbuff.put((byte) 0).slice();
     	String tempMessage ="0";
     	System.out.println("Saisissez votre message \nAppuyer deux fois sur entrer si vous avez fini. \n");
     	tempMessage = m_sc.nextLine();
