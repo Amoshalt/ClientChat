@@ -117,7 +117,7 @@ public class Client extends Thread
 		m_close = true;
 		m_sc.close();
 		System.out.println("Client ferme.");
-		DestroyClient();
+		
 
 	}
 
@@ -133,8 +133,9 @@ public class Client extends Thread
 	}
 
 	//Destructor
-	public void DestroyClient()
+	public void CloseClient()
 	{
+		send(new byte[]  {(byte) Exit});
 		m_continuer = false;
 
 	}
@@ -472,11 +473,6 @@ public class Client extends Thread
 
     }
 
-    //rentrer un message
-    public void EntrerMessage()
-    {
-
-    }
 
     //affichage du message et du propriétaire
 
@@ -495,13 +491,15 @@ public class Client extends Thread
 		bbuff.put((byte)NewMsg);
 		bbuff.put((byte) 0).slice();
     	String tempMessage ="0";
-    	System.out.println("Saisissez votre message \nAppuyer deux fois sur entrer si vous avez fini. \n");
+    	System.out.println("Saisissez votre message \nAppuyer deux fois sur entrer si vous avez fini.");
     	tempMessage = m_sc.nextLine();
 		bbuff.put(tempMessage.getBytes());
 		bbuff.put(section);
 
-
-    	send(bbuff.array());
+		if(tempMessage.equals("quitter"))
+			CloseClient();
+		else
+			send(bbuff.array());
 
     }
 
