@@ -61,6 +61,7 @@ public class Client extends Thread
 	private DatagramSocket m_socket;
 	private boolean m_continuer;
 	private boolean m_close;
+	private boolean m_connecte;
 	private ArrayList<User> m_users;
 
 	//Constructor
@@ -95,7 +96,7 @@ public class Client extends Thread
 	public void run()
 	{
 		DatagramPacket dp =null;
-		do 
+		while(m_connecte == false) 
 		{
 			DemandeAuth();
 			dp = Reception();
@@ -105,7 +106,7 @@ public class Client extends Thread
 			else
 				System.out.println("Erreur d'authentification.Veuillez recommencer \n\n");
 		}
-		while(dp == null);
+		
 		
 		while(m_continuer)
 			Action();
@@ -265,6 +266,7 @@ public class Client extends Thread
 	    			break;
 	
 	    		case AuthOK:
+	    			m_connecte = true;
 	    			System.out.println("Authentification reussie");
 	    			//DemandeConv();
 	    			break;
@@ -491,7 +493,7 @@ public class Client extends Thread
 		bbuff.put((byte)NewMsg);
 		bbuff.put((byte) 0);
     	String tempMessage ="0";
-    	System.out.println("Saisissez votre message \n Appuyer deux fois sur entrer si vous avez fini. \n");
+    	System.out.println("Saisissez votre message \nAppuyer deux fois sur entrer si vous avez fini. \n");
     	tempMessage = m_sc.nextLine();
 		bbuff.put(tempMessage.getBytes());
 		bbuff.put(section);
