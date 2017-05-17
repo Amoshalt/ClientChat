@@ -368,7 +368,6 @@ public class Client extends Thread
     		if (m_users.get(i).getId() == idUsr)
     		{
     			return new User(m_users.get(i).getId(),m_users.get(i).getUsername());
-
     		}
     		else
     		{
