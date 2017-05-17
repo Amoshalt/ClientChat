@@ -94,11 +94,19 @@ public class Client extends Thread
 
 	public void run()
 	{
-		DemandeAuth();
-		DatagramPacket dp = Reception();
-		if(dp != null)
-			Traitement(dp);
-
+		DatagramPacket dp =null;
+		do 
+		{
+			DemandeAuth();
+			dp = Reception();
+			
+			if(dp != null)
+				Traitement(dp);
+			else
+				System.out.println("Erreur d'authentification.Veuillez recommencer \n\n");
+		}
+		while(dp == null);
+		
 		while(m_continuer)
 			Action();
 
@@ -224,118 +232,91 @@ public class Client extends Thread
 
     //Traitement d'un datagramPacket
     public void Traitement(DatagramPacket dp)
-    {
-    	/*byte flag = 100;
-    	DatagramPacket dp = new DatagramPacket(new byte[512], 512);
-    	dp.setData(ByteBuffer.allocate(512).put((byte)AuthOK).put(" on est mal la".getBytes()).array());*/
-    	InetAddress ia = dp.getAddress();
-    	byte[] data = dp.getData();
-    	int port = dp.getPort();
-    	System.out.println("Adresse : " + ia + "\n" +
-    					   "Port : " + port + "\n" +
-    					   "Données : " + new String(data));
-    	byte dpFlag= data[0];
-    	switch(dpFlag)
+    {	
+    	if(dp != null)
     	{
-    		case RetourIDChat:
-    			NouvelleConversation(data);
-
-    			break;
-
-    		case PseudoInvalide:
-    			System.out.println("Pseudo Invalide");
-    			DemandeAuth();
-    			break;
-
-    		case Refuse:
-    			break;
-
-    		case TestConnexion:
-    			ConfirmerActivite();
-    			break;
-
-    		case NeedAuth:
-    			DemandeAuth();
-    			break;
-
-    		case AuthOK:
-    			System.out.println("Authentification reussie");
-    			//DemandeConv();
-    			break;
-
-    		case IDChatInvalide:
-    			System.out.println("serveur complet");
-    			break;
-
-    		case ContactInvalide:
-    			System.out.println("Contact Invalide");
-    			DemandeConv();
-    			break;
-
-    		case Exit:
-    			break;
-
-    		case ACK:
-    			break;
-
-    		case NewMsg:
-    			//EnregistrerMessage(data);
-    			AfficherMessage(data);
-    			break;
-
-    		case UsrListe:
-    			RentreUtilisateurs(data);
-    			break;
-
-    		case NewUse:
-    			RentreUtilisateurs(data);
-    			break;
-
-    		case DelUse:
-    			SuppUtilisateur(data[1]);
-    			break;
-
-    		case NewChat:
-    			NouveauChat();
-    			break;
-
-    		case MsgOK:
-    			break;
-
-    		case MsgErr:
-    			System.out.println("Votre messsage n'a pas été envoyé");
-    			break;
-
+	    	
+	    	byte[] data = dp.getData();
+	    	
+	    	
+	    	byte dpFlag= data[0];
+	    	switch(dpFlag)
+	    	{
+	    		case RetourIDChat:
+	    			NouvelleConversation(data);
+	
+	    			break;
+	
+	    		case PseudoInvalide:
+	    			System.out.println("Pseudo Invalide");
+	    			DemandeAuth();
+	    			break;
+	
+	    		case Refuse:
+	    			break;
+	
+	    		case TestConnexion:
+	    			ConfirmerActivite();
+	    			break;
+	
+	    		case NeedAuth:
+	    			System.out.println("Vous n'êtes pas authentifiés");
+	    			DemandeAuth();
+	    			break;
+	
+	    		case AuthOK:
+	    			System.out.println("Authentification reussie");
+	    			//DemandeConv();
+	    			break;
+	
+	    		case IDChatInvalide:
+	    			System.out.println("serveur complet");
+	    			break;
+	
+	    		case ContactInvalide:
+	    			System.out.println("Contact Invalide");
+	    			DemandeConv();
+	    			break;
+	
+	    		case Exit:
+	    			break;
+	
+	    		case ACK:
+	    			break;
+	
+	    		case NewMsg:
+	    			//EnregistrerMessage(data);
+	    			AfficherMessage(data);
+	    			break;
+	
+	    		case UsrListe:
+	    			RentreUtilisateurs(data);
+	    			break;
+	
+	    		case NewUse:
+	    			RentreUtilisateurs(data);
+	    			break;
+	
+	    		case DelUse:
+	    			SuppUtilisateur(data[1]);
+	    			break;
+	
+	    		case NewChat:
+	    			DemandeConv();
+	    			break;
+	
+	    		case MsgOK:
+	    			break;
+	
+	    		case MsgErr:
+	    			System.out.println("Votre messsage n'a pas été envoyé");
+	    			break;
+	
+	    	}
     	}
-    	affichage(dp);
     }
 
-    private void NouveauChat() {
-    	ByteBuffer bbuff = ByteBuffer.allocate(512);
-    	System.out.println("Rentrez les id des utilisateurs avec qui vous voulez discuter dans la liste ci-dessous");
-    	AfficherListeUsr();
-    	String id;
-    	int j ;
-    	boolean entiers = true;
-    	do
-		{
-    		j= 0;
-    		System.out.println("Id utilisateur:");
-    		id = m_sc.nextLine();
-
-    		while( j < id.length() && entiers)
-    		{
-    			if (id.charAt(j) <'0' || id.charAt(j) > '9')
-    				{
-    					entiers = false;
-    				}
-
-    		}
-
-
-		}while (true);
-
-	}
+   
 
     private void AfficherListeUsr()
     {
@@ -432,7 +413,6 @@ public class Client extends Thread
 		}while (contientEspace);
 
 
-    	System.out.println("pseudo rentré: " + pseudo);
     	return pseudo;
     }
 
@@ -440,51 +420,51 @@ public class Client extends Thread
     public void DemandeAuth()
     {
     	String pseudo = RentrerPseudo();
-    	System.out.println("Le pseudo est bien rentré");
 
     	ByteBuffer bbuff = ByteBuffer.allocate(512);
     	bbuff.put((byte)TestAuth).put(pseudo.getBytes());
 
-    	if(send(bbuff.array()) == true)
-    	{
-    		System.out.println("pseudo envoyé");
-    	}
-    	else
-    	{
-    		System.out.println("pseudo non envoyé");
-    	}
-       	DatagramPacket dp = Reception();
-       	Traitement(dp);
+    	send(bbuff.array());
 
     }
 
     //Demande au serveur l'acces a une conversation
     public void DemandeConv()
     {
-    	byte section = 0;
-    	byte[] flag = new byte[2];
-    	flag[0] = 11;
-    	flag[1]= 1;
-
-
+    	boolean entier= true;
+    	int j = 0;
     	ByteBuffer bbuff = ByteBuffer.allocate(512);
-		bbuff.put(flag);
+		bbuff.put((byte) NewChat);
     	String temp ="0";
     	int i = 1;
+    	System.out.println("Voici les utilisateurs connectés:");
+    	AfficherListeUsr();
     	while (!temp.isEmpty())
 		{
     		temp="";
-    		System.out.println("Saisissez le "+ i + " ème destinataire \n Appuyer sur entrer si vous avez fini. \n");
+    		System.out.println("\nSaisissez le "+ i + " ème destinataire \nAppuyer sur entrer si vous avez fini. \n");
     		temp = m_sc.nextLine();
-    		bbuff.put(temp.getBytes());
-    		bbuff.put(section);
-    		i++;
+    		while(j < temp.length() && entier)
+    		{
+    			if(temp.charAt(j) >'9' && temp.charAt(j) < '0')
+    			{
+    				entier = false;
+    			}
+    		}
+    		if(entier)
+    		{
+    			bbuff.put((byte)Integer.parseInt(temp));
+    			i++;
+    		}
+    		else 
+    		{
+    			System.out.println("Vous n'avez pas rentré un entier");
+    		}
+    		
 		}
 
     	send(bbuff.array());
 
-    	DatagramPacket dp = Reception();
-    	Traitement(dp);
     }
 
     //rentrer un message
@@ -520,11 +500,7 @@ public class Client extends Thread
 
     }
 
-    //Affichage des données
-    public void affichage(DatagramPacket dp)
-    {
-    	System.out.println(new String(dp.getData()));
-    }
+    
 
     //Creation nouvelle conversation en cours
     public void NouvelleConversation(byte[] data)
@@ -547,8 +523,6 @@ public class Client extends Thread
     			.put((byte) Online);
     	send(bbuff.array());
 
-    	DatagramPacket dp = Reception();
-    	Traitement(dp);
     }
 
     //Getter Setter
