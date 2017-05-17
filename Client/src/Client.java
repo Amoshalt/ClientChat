@@ -5,30 +5,50 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Scanner;
 
 public class Client {
 	
 	public final static int Exit = 0, //Code envoyé par le client à la fermeture
-			ACK = 1,
-			Refuse = 2, //Erreur par défaut
-			TestConnexion = 3, //Teste si le client est toujours actif
-			Online = 4,	//Valeur retournée par le client pour signaler qu'il est toujours actif
-			UsrListe = 7, //Liste des correspondances ID <-> username envoyé par le serveur au client à la connexion
-			NewUse = 15, //Code envoyé par le serveur pour notifier un client de la connexion d'un nouvel utilisateur
-			NewChat = 11, //Demande de création de chat, suivi du nom des dest.
-			DelUse = 16, //Code envoyé par le serveur pour notifier un client de la déconnexion d'un utilisateur
-			TestAuth = 32, //Code envoyé par le client pour s'authentifier, suivi du pseudo sans espace
-			NewMsg = 42, //Envoi d'un msg, suivi de l'ID du chat et du message
-			MsgOK = 43, //Code envoyé au client par le serveur pour indiquer que le message a été transmi.
-			MsgErr = 44, //Code envoyé au client par le serveur pour indiquer que le message n'a pas été transmi
-			NeedAuth = 100, //Demande d'authentification du serveur vers le client
-			PseudoInvalide = 101, //Erreur d'authentification retournée par le serveur
-			AuthOK = 102, //Validation de l'authentification
-			IDChatInvalide = 110, //Impossible d'écrire dans ce chat
-			RetourIDChat = 111, //Retourne l'ID du chat voulu, suivi
-			ContactInvalide = 112 //Erreur : le destinataire voulu n'existe pas, suivi du pseudo invalide
-			 
+
+				ACK = 1,
+				
+				Refuse = 2, //Erreur par défaut
+				
+				TestConnexion = 3, //Teste si le client est toujours actif
+				
+				Online = 4,	//Valeur retournée par le client pour signaler qu'il est toujours actif
+				
+				UsrListe = 7, //Liste des correspondances ID <-> username envoyé par le serveur au client à la connexion
+				
+				NewChat = 11, //Demande de création de chat, suivi du nom des dest.
+				
+				NewUse = 15, //Code envoyé par le serveur pour notifier un client de la connexion d'un nouvel utilisateur
+				
+				DelUse = 16, //Code envoyé par le serveur pour notifier un client de la déconnexion d'un utilisateur
+				
+				TestAuth = 32, //Code envoyé par le client pour s'authentifier, suivi du pseudo sans espace
+				
+				NewMsg = 42, //Envoi d'un msg, suivi de l'ID du chat et du message
+				
+				MsgOK = 43, //Code envoyé au client par le serveur pour indiquer que le message a été transmi.
+				
+				MsgErr = 44, //Code envoyé au client par le serveur pour indiquer que le message n'a pas été transmi
+				
+				NeedAuth = 100, //Demande d'authentification du serveur vers le client
+				
+				PseudoInvalide = 101, //Erreur d'authentification retournée par le serveur
+				
+				AuthOK = 102, //Validation de l'authentification
+				
+				IDChatInvalide = 110, //Impossible d'écrire dans ce chat
+				
+				RetourIDChat = 111, //Retourne l'ID du chat voulu, suivi
+				
+				ContactInvalide = 112 //Erreur : le destinataire voulu n'existe pas, suivi du pseudo invalide
+					 
 			;
 	
 	private Scanner m_sc;
@@ -37,11 +57,16 @@ public class Client {
 	private InetAddress m_ia;
 	private int m_port;
 	private DatagramSocket m_socket;
+	private boolean m_continuer;
+	private boolean m_close;
+	private ArrayList<User> m_users;
 	
 	//Constructor
 	
 	public Client (String serveur)
 	{
+		m_continuer = true;
+		m_close = false;
 		m_sc = new Scanner(System.in);
 		m_conv = new Conversation[127];
 		try {
@@ -61,12 +86,32 @@ public class Client {
 			e.printStackTrace();
 		}
 		
+		m_users = new ArrayList<User>(128);
+	}
+	
+	public void run()
+	{
+		while(m_continuer)
+			Action();
+		
+		m_socket.close();
+		m_close = true;
+		
+	}
+	
+	protected void Action()
+	{
+		System.out.println("Serv Action");
+		DatagramPacket dp = Reception();
+		if(dp != null)
+			Traitement(dp);
 	}
 	
 	//Destructor
 	public void DestroyClient()
 	{
 		m_sc.close();
+		System.out.println("Client ferme.");
 		
 	}
 	
@@ -173,6 +218,7 @@ public class Client {
     	{
     		case RetourIDChat:
     			NouvelleConversation(data);
+    			
     			break;
     			
     		case PseudoInvalide:
@@ -214,12 +260,68 @@ public class Client {
     		case NewMsg:
     			EnregistrerMessage(data);
     			break;
+    			
+    		case UsrListe:
+    			RentreUtilisateurs(data);
+    			break;
+    			
+    		case NewUse:
+    			RentreUtilisateurs(data);
+    			break;
+    			
+    		case DelUse:
+    			SuppUtilisateur(data[1]);
+    			break;
+    			
+    		case NewChat:
+    			break;
+    			
+    		case MsgOK:
+    			break;
+    			
+    		case MsgErr:
+    			break;
     		
     	}
+    	SendACK();
     	affichage(dp);
     }
     
-    //Reception du message et enregistrement dans la conversation correspondante
+    private void SuppUtilisateur(byte idUsr) {
+		
+    	
+    	boolean trouve = false;
+    	int i = 0;
+    	while ( i < m_users.size() || !trouve)
+    	{
+    		if (m_users.get(i).getId() == idUsr)
+    		{
+    			User tempUsr = new User(m_users.get(i).getId(),m_users.get(i).getUsername());
+    			m_users.remove(m_users.indexOf(tempUsr));
+    			trouve = true;
+    		}
+    		else
+    		{
+    			System.out.println("L'utilisateur n'a pas été trouvé dans notre liste");
+    		}
+    		i++;
+    	}
+    	
+		
+	}
+
+
+	private void RentreUtilisateurs(byte[] data) {
+		// TODO Auto-generated method stub
+    	
+		byte idUsr = data[1];
+		byte[] bytesUsr = Arrays.copyOfRange(data, 2, data.length);
+		
+		m_users.add(new User(idUsr,bytesUsr.toString()));
+		
+	}
+
+	//Reception du message et enregistrement dans la conversation correspondante
     public void EnregistrerMessage(byte[] data)
     {
     	byte idConvAct = data[1];
@@ -365,7 +467,12 @@ public class Client {
   //Repondre à la demande d'activité du serveur
     public void ConfirmerActivite()
     {
+    	ByteBuffer bbuff = ByteBuffer.allocate(512)
+    			.put((byte) Online);
+    	send(bbuff.array());
     	
+    	DatagramPacket dp = Reception();
+    	Traitement(dp);
     }
 
     //Getter Setter
