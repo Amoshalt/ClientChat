@@ -339,6 +339,7 @@ public class Client extends Thread
 
     private void AfficherListeUsr()
     {
+    	System.out.println("\nListe des utilisateurs :");
     	for(int i = 0; i < m_users.size(); i++)
     		{
     		System.out.println(m_users.get(i).getUsername() + " : " + m_users.get(i).getId());
