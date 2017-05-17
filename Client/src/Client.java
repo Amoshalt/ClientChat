@@ -224,90 +224,87 @@ public class Client extends Thread
 
     //Traitement d'un datagramPacket
     public void Traitement(DatagramPacket dp)
-    {
-    	/*byte flag = 100;
-    	DatagramPacket dp = new DatagramPacket(new byte[512], 512);
-    	dp.setData(ByteBuffer.allocate(512).put((byte)AuthOK).put(" on est mal la".getBytes()).array());*/
-    	InetAddress ia = dp.getAddress();
-    	byte[] data = dp.getData();
-    	int port = dp.getPort();
-    	System.out.println("Adresse : " + ia + "\n" +
-    					   "Port : " + port + "\n" +
-    					   "Données : " + new String(data));
-    	byte dpFlag= data[0];
-    	switch(dpFlag)
+    {	
+    	if(dp != null)
     	{
-    		case RetourIDChat:
-    			NouvelleConversation(data);
-
-    			break;
-
-    		case PseudoInvalide:
-    			System.out.println("Pseudo Invalide");
-    			DemandeAuth();
-    			break;
-
-    		case Refuse:
-    			break;
-
-    		case TestConnexion:
-    			ConfirmerActivite();
-    			break;
-
-    		case NeedAuth:
-    			DemandeAuth();
-    			break;
-
-    		case AuthOK:
-    			System.out.println("Authentification reussie");
-    			//DemandeConv();
-    			break;
-
-    		case IDChatInvalide:
-    			System.out.println("serveur complet");
-    			break;
-
-    		case ContactInvalide:
-    			System.out.println("Contact Invalide");
-    			DemandeConv();
-    			break;
-
-    		case Exit:
-    			break;
-
-    		case ACK:
-    			break;
-
-    		case NewMsg:
-    			//EnregistrerMessage(data);
-    			AfficherMessage(data);
-    			break;
-
-    		case UsrListe:
-    			RentreUtilisateurs(data);
-    			break;
-
-    		case NewUse:
-    			RentreUtilisateurs(data);
-    			break;
-
-    		case DelUse:
-    			SuppUtilisateur(data[1]);
-    			break;
-
-    		case NewChat:
-    			NouveauChat();
-    			break;
-
-    		case MsgOK:
-    			break;
-
-    		case MsgErr:
-    			System.out.println("Votre messsage n'a pas été envoyé");
-    			break;
-
+	    	
+	    	byte[] data = dp.getData();
+	    	
+	    	
+	    	byte dpFlag= data[0];
+	    	switch(dpFlag)
+	    	{
+	    		case RetourIDChat:
+	    			NouvelleConversation(data);
+	
+	    			break;
+	
+	    		case PseudoInvalide:
+	    			System.out.println("Pseudo Invalide");
+	    			DemandeAuth();
+	    			break;
+	
+	    		case Refuse:
+	    			break;
+	
+	    		case TestConnexion:
+	    			ConfirmerActivite();
+	    			break;
+	
+	    		case NeedAuth:
+	    			DemandeAuth();
+	    			break;
+	
+	    		case AuthOK:
+	    			System.out.println("Authentification reussie");
+	    			//DemandeConv();
+	    			break;
+	
+	    		case IDChatInvalide:
+	    			System.out.println("serveur complet");
+	    			break;
+	
+	    		case ContactInvalide:
+	    			System.out.println("Contact Invalide");
+	    			DemandeConv();
+	    			break;
+	
+	    		case Exit:
+	    			break;
+	
+	    		case ACK:
+	    			break;
+	
+	    		case NewMsg:
+	    			//EnregistrerMessage(data);
+	    			AfficherMessage(data);
+	    			break;
+	
+	    		case UsrListe:
+	    			RentreUtilisateurs(data);
+	    			break;
+	
+	    		case NewUse:
+	    			RentreUtilisateurs(data);
+	    			break;
+	
+	    		case DelUse:
+	    			SuppUtilisateur(data[1]);
+	    			break;
+	
+	    		case NewChat:
+	    			NouveauChat();
+	    			break;
+	
+	    		case MsgOK:
+	    			break;
+	
+	    		case MsgErr:
+	    			System.out.println("Votre messsage n'a pas été envoyé");
+	    			break;
+	
+	    	}
     	}
-    	affichage(dp);
     }
 
     private void NouveauChat() {
@@ -453,8 +450,6 @@ public class Client extends Thread
     	{
     		System.out.println("pseudo non envoyé");
     	}
-       	DatagramPacket dp = Reception();
-       	Traitement(dp);
 
     }
 
@@ -483,8 +478,6 @@ public class Client extends Thread
 
     	send(bbuff.array());
 
-    	DatagramPacket dp = Reception();
-    	Traitement(dp);
     }
 
     //rentrer un message
@@ -547,8 +540,6 @@ public class Client extends Thread
     			.put((byte) Online);
     	send(bbuff.array());
 
-    	DatagramPacket dp = Reception();
-    	Traitement(dp);
     }
 
     //Getter Setter
