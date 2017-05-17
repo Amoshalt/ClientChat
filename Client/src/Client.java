@@ -260,6 +260,7 @@ public class Client extends Thread
 	    			break;
 	
 	    		case NeedAuth:
+	    			System.out.println("Vous n'êtes pas authentifiés");
 	    			DemandeAuth();
 	    			break;
 	
