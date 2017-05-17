@@ -69,6 +69,7 @@ public class Client extends Thread
 	public Client (String serveur)
 	{
 		m_continuer = true;
+		m_connecte = false;
 		m_close = false;
 		m_sc = new Scanner(System.in);
 		m_conv = new Conversation[127];
@@ -106,7 +107,8 @@ public class Client extends Thread
 			else
 				System.out.println("Erreur d'authentification.Veuillez recommencer \n\n");
 		}
-		
+		if(m_connecte)
+			System.out.println("Vous etes connectés");
 		
 		while(m_continuer)
 			Action();
