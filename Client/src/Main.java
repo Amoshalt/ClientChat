@@ -13,7 +13,7 @@ public class Main
 	public static void main(String[] args)
     {
 
-    	String serveur = "192.168.0.15";
+    	String serveur = "10.100.1.153";
     	Client client = new Client(serveur);
     	client.start();
     	/*client.DemandeAuth();

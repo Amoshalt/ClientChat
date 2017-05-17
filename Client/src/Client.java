@@ -95,18 +95,18 @@ public class Client extends Thread
 	public void run()
 	{
 		DatagramPacket dp =null;
-		do 
+		do
 		{
 			DemandeAuth();
 			dp = Reception();
-			
+
 			if(dp != null)
 				Traitement(dp);
 			else
 				System.out.println("Erreur d'authentification.Veuillez recommencer \n\n");
 		}
 		while(dp == null);
-		
+
 		while(m_continuer)
 			Action();
 
@@ -216,6 +216,7 @@ public class Client extends Thread
 	    		m_socket.receive(packet);
 	    		if(packet.getData()[0] == ACK) System.out.println("ACK recu");
     		}while(packet.getData()[0] == ACK);
+    		m_port = packet.getPort();
     		//Si le packet n'est pas un ACK, on en retourne un au client
     		SendACK();
     		return packet;
@@ -232,91 +233,91 @@ public class Client extends Thread
 
     //Traitement d'un datagramPacket
     public void Traitement(DatagramPacket dp)
-    {	
+    {
     	if(dp != null)
     	{
-	    	
+
 	    	byte[] data = dp.getData();
-	    	
-	    	
+
+
 	    	byte dpFlag= data[0];
 	    	switch(dpFlag)
 	    	{
 	    		case RetourIDChat:
 	    			NouvelleConversation(data);
-	
+
 	    			break;
-	
+
 	    		case PseudoInvalide:
 	    			System.out.println("Pseudo Invalide");
 	    			DemandeAuth();
 	    			break;
-	
+
 	    		case Refuse:
 	    			break;
-	
+
 	    		case TestConnexion:
 	    			ConfirmerActivite();
 	    			break;
-	
+
 	    		case NeedAuth:
 	    			System.out.println("Vous n'êtes pas authentifiés");
 	    			DemandeAuth();
 	    			break;
-	
+
 	    		case AuthOK:
 	    			System.out.println("Authentification reussie");
 	    			//DemandeConv();
 	    			break;
-	
+
 	    		case IDChatInvalide:
 	    			System.out.println("serveur complet");
 	    			break;
-	
+
 	    		case ContactInvalide:
 	    			System.out.println("Contact Invalide");
 	    			DemandeConv();
 	    			break;
-	
+
 	    		case Exit:
 	    			break;
-	
+
 	    		case ACK:
 	    			break;
-	
+
 	    		case NewMsg:
 	    			//EnregistrerMessage(data);
 	    			AfficherMessage(data);
 	    			break;
-	
+
 	    		case UsrListe:
 	    			RentreUtilisateurs(data);
 	    			break;
-	
+
 	    		case NewUse:
 	    			RentreUtilisateurs(data);
 	    			break;
-	
+
 	    		case DelUse:
 	    			SuppUtilisateur(data[1]);
 	    			break;
-	
+
 	    		case NewChat:
 	    			DemandeConv();
 	    			break;
-	
+
 	    		case MsgOK:
 	    			break;
-	
+
 	    		case MsgErr:
 	    			System.out.println("Votre messsage n'a pas été envoyé");
 	    			break;
-	
+
 	    	}
     	}
     }
 
-   
+
 
     private void AfficherListeUsr()
     {
@@ -456,11 +457,11 @@ public class Client extends Thread
     			bbuff.put((byte)Integer.parseInt(temp));
     			i++;
     		}
-    		else 
+    		else
     		{
     			System.out.println("Vous n'avez pas rentré un entier");
     		}
-    		
+
 		}
 
     	send(bbuff.array());
@@ -500,7 +501,7 @@ public class Client extends Thread
 
     }
 
-    
+
 
     //Creation nouvelle conversation en cours
     public void NouvelleConversation(byte[] data)
