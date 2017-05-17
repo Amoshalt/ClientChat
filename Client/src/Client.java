@@ -94,6 +94,11 @@ public class Client extends Thread
 	
 	public void run()
 	{
+		DemandeAuth();
+		DatagramPacket dp = Reception();
+		if(dp != null)
+			Traitement(dp);
+		
 		while(m_continuer)
 			Action();
 		
@@ -101,11 +106,13 @@ public class Client extends Thread
 		m_close = true;
 		m_sc.close();
 		System.out.println("Client ferme.");
+		DestroyClient();
 		
 	}
 	
 	protected void Action()
 	{
+		
 		EnvoyerMessage();
 		
 		
