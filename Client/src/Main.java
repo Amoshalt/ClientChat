@@ -7,25 +7,25 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.Scanner;
 
-public class Main 
+public class Main
 {
-	
-	public static void main(String[] args) 
+
+	public static void main(String[] args)
     {
-		
-    	String serveur = "127.0.0.1";
+
+    	String serveur = "10.100.1.153";
     	Client client = new Client(serveur);
     	client.start();
     	/*client.DemandeAuth();
     	System.out.println("Demande terminée");
 		client.DemandeConv();*/
-	    
-    	
-    	
-    	
-    	
-    	
-        
+
+
+
+
+
+
+
     }
-    
+
 }
