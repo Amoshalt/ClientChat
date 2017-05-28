@@ -53,16 +53,16 @@ public class Client extends Thread
 
 			;
 
-	private Scanner m_sc;
 	private Conversation[] m_conv;
 	private int m_nbConv;
 	private InetAddress m_ia;
 	private int m_port;
 	private DatagramSocket m_socket;
 	private boolean m_continuer;
-	private boolean m_close;
 	private boolean m_connecte;
 	private ArrayList<User> m_users;
+	protected Fenetre m_fenetre;
+	protected ThreadRecep m_thread;
 
 	//Constructor
 
@@ -70,8 +70,6 @@ public class Client extends Thread
 	{
 		m_continuer = true;
 		m_connecte = false;
-		m_close = false;
-		m_sc = new Scanner(System.in);
 		m_conv = new Conversation[127];
 		try {
 			m_ia = InetAddress.getByName(serveur);
@@ -89,9 +87,9 @@ public class Client extends Thread
 		{
 			e.printStackTrace();
 		}
-
+		m_fenetre = new Fenetre(this);
 		m_users = new ArrayList<User>(128);
-
+		m_thread = new ThreadRecep(m_socket, m_ia, m_port);
 	}
 
 	public void run()
@@ -109,15 +107,14 @@ public class Client extends Thread
 		}
 		if(m_connecte)
 			System.out.println("Vous etes connectés");
+		m_thread.start();
 
 		while(m_continuer)
 			Action();
 
 		m_socket.close();
-		m_close = true;
-		m_sc.close();
 		System.out.println("Client ferme.");
-		
+
 
 	}
 
@@ -126,16 +123,15 @@ public class Client extends Thread
 
 		EnvoyerMessage();
 
-
-		DatagramPacket dp = Reception();
-		if(dp != null)
-			Traitement(dp);
+		while(m_thread.m_msg.size() > 0)
+			Traitement(m_thread.m_msg.remove(0));
 	}
 
 	//Destructor
 	public void CloseClient()
 	{
 		send(new byte[]  {(byte) Exit});
+		m_thread.Stop();
 		m_continuer = false;
 
 	}
@@ -253,7 +249,7 @@ public class Client extends Thread
 	    			break;
 
 	    		case PseudoInvalide:
-	    			System.out.println("Pseudo Invalide");
+	    			m_fenetre.Texte("Pseudo Invalide");
 	    			DemandeAuth();
 	    			break;
 
@@ -265,22 +261,22 @@ public class Client extends Thread
 	    			break;
 
 	    		case NeedAuth:
-	    			System.out.println("Vous n'êtes pas authentifiés");
+	    			m_fenetre.Texte("Vous n'êtes pas authentifiés");
 	    			DemandeAuth();
 	    			break;
 
 	    		case AuthOK:
 	    			m_connecte = true;
-	    			System.out.println("Authentification reussie");
+	    			m_fenetre.Texte("Authentification reussie");
 	    			//DemandeConv();
 	    			break;
 
 	    		case IDChatInvalide:
-	    			System.out.println("serveur complet");
+	    			m_fenetre.Texte("serveur complet");
 	    			break;
 
 	    		case ContactInvalide:
-	    			System.out.println("Contact Invalide");
+	    			m_fenetre.Texte("Contact Invalide");
 	    			DemandeConv();
 	    			break;
 
@@ -296,7 +292,7 @@ public class Client extends Thread
 	    			break;
 
 	    		case UsrListe:
-	    			System.out.println("Les utilisateurs sont reçus");
+	    			m_fenetre.Texte("Les utilisateurs sont reçus");
 	    			RentreUtilisateurs(data);
 	    			break;
 
@@ -316,7 +312,7 @@ public class Client extends Thread
 	    			break;
 
 	    		case MsgErr:
-	    			System.out.println("Votre messsage n'a pas été envoyé");
+	    			m_fenetre.Texte("Votre messsage n'a pas été envoyé");
 	    			break;
 
 	    	}
@@ -404,8 +400,20 @@ public class Client extends Thread
     	do
 		{
     		contientEspace = false;
-    		System.out.println("Rentrez votre pseudo");
-    		pseudo = m_sc.nextLine();
+    		//System.out.println("Rentrez votre pseudo");
+    		m_fenetre.Label("Rentrez Pseudo");
+    		while(m_fenetre.m_str.size() == 0)
+    		{
+    			try
+    			{
+    				Thread.sleep(100);
+    			}
+    			catch(Exception e)
+    			{
+    				e.printStackTrace();
+    			}
+    		}
+    		pseudo = m_fenetre.m_str.remove(0);
     		int i = 0;
     		while (i < pseudo.length())
     		{
@@ -450,7 +458,11 @@ public class Client extends Thread
 		{
     		temp="";
     		System.out.println("\nSaisissez le "+ i + " ème destinataire \nAppuyer sur entrer si vous avez fini. \n");
-    		temp = m_sc.nextLine();
+    		//temp = m_sc.nextLine();
+
+    		//A FAIRE
+
+    		//
     		while(j < temp.length() && entier)
     		{
     			if(temp.charAt(j) >'9' && temp.charAt(j) < '0')
@@ -479,8 +491,13 @@ public class Client extends Thread
 
     public void AfficherMessage(byte[] data)
     {
-    	String name = TrouveUser(data[2]).getUsername();
-    	System.out.println(name + " : " + Arrays.copyOfRange(data, 3, data.length).toString());
+    	/*
+    	String name = TrouveUser(data[1]).getUsername();
+    	String str = (name + " : " + Arrays.copyOfRange(data, 3, data.length).toString());
+    	*/
+    	String str = new String(Arrays.copyOfRange(data, 2, data.length));
+    	System.out.println("AffMsg " + str);
+    	m_fenetre.Msg(str);
 
     }
 
@@ -492,15 +509,18 @@ public class Client extends Thread
 		bbuff.put((byte)NewMsg);
 		bbuff.put((byte) 0).slice();
     	String tempMessage ="0";
-    	System.out.println("Saisissez votre message \nAppuyer deux fois sur entrer si vous avez fini.");
-    	tempMessage = m_sc.nextLine();
-		bbuff.put(tempMessage.getBytes());
-		bbuff.put(section);
+    	m_fenetre.Label("Saisissez votre message.");
+		while(m_fenetre.m_str.size() != 0)
+		{
+			tempMessage = m_fenetre.m_str.remove(0);
+			bbuff.put(tempMessage.getBytes());
+			bbuff.put(section);
 
-		if(tempMessage.equals("quitter"))
-			CloseClient();
-		else
-			send(bbuff.array());
+			if(tempMessage.equals("quitter"))
+				CloseClient();
+			else
+				send(bbuff.array());
+		}
 
     }
 
@@ -528,24 +548,28 @@ public class Client extends Thread
     	send(bbuff.array());
 
     }
-    
+
     //Choisir entre chat global et discussion
     public int choix()
     {
-    	
+
     	String tempLine= "";
     	while(true)
     	{
     		System.out.println("Donnez le numero correspondant à votre attente:\n1:Chat avec tout les utilisateurs\2:CHat avec certains utilisateurs");
-    		tempLine = m_sc.nextLine();
+
+    		//tempLine = m_sc.nextLine();
+
+    		//A FAIRE
+
     		if(tempLine.equals("1"))
     			return 1;
     		else
     			if(tempLine.equals("2"))
     			return 2;
-    		
+
     	}
-    	
+
     }
     //Getter Setter
 
